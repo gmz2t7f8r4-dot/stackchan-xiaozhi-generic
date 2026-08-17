@@ -1,0 +1,20 @@
+diff --git a/core/websocket_server.py b/core/websocket_server.py
+--- a/core/websocket_server.py
++++ b/core/websocket_server.py
+@@ -84,7 +84,15 @@ class WebSocketServer:
+         port = int(server_config.get("port", 8000))
+ 
+         async with websockets.serve(
+-            self._handle_connection, host, port, process_request=self._http_response
++            self._handle_connection,
++            host,
++            port,
++            process_request=self._http_response,
++            # Some embedded clients don't answer RFC WebSocket pings while
++            # decoding a long audio stream. Keep sending pings, but don't tear
++            # down an otherwise active music connection for a missing pong.
++            ping_interval=30,
++            ping_timeout=None,
+         ):
+             await asyncio.Future()
+ 

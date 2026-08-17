@@ -1055,6 +1055,10 @@ class SimpleHttpServer:
                                 )
             except (asyncio.CancelledError, ConnectionError):
                 return
+            except Exception as exc:
+                self.logger.bind(tag=TAG).warning(
+                    f"播放完成回调停止: {exc}"
+                )
             finally:
                 if self._playback_finish_task is current_task:
                     self._playback_finish_task = None
