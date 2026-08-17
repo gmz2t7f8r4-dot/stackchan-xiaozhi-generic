@@ -168,7 +168,7 @@ class SimpleHttpServer:
              "playlist": {"type": "string"},
              "limit": {"type": "integer", "minimum": 1, "maximum": 100, "default": 30}},
              "required": ["playlist"]}},
-        {"name": "self_music_play_playlist", "description": "Load a NetEase Cloud Music playlist by exact name or playlist ID and start the first playable song. Subsequent next-song requests use this playlist queue.",
+        {"name": "self_music_play_playlist", "description": "Load a NetEase Cloud Music playlist by exact name or playlist ID, start the first playable song, and automatically continue in list-loop order.",
          "inputSchema": {"type": "object", "properties": {
              "playlist": {"type": "string"}}, "required": ["playlist"]}},
         {"name": "self_music_stop", "description": "Stop the audio currently playing through StackChan.",
@@ -191,6 +191,7 @@ class SimpleHttpServer:
         self.vision_handler = VisionHandler(config)
         self.music_queue = []
         self.music_index = -1
+        self.music_auto_advance = False
         self.music_lyrics = []
         self.music_lyrics_title = ""
         self.music_lyrics_source = "none"
@@ -834,6 +835,23 @@ class SimpleHttpServer:
         reason = failures[0] if failures else "没有可播放结果"
         raise RuntimeError(f"搜索到了歌曲，但当前账号都无法完整播放：{reason}")
 
+    async def _play_next_playlist_item(self, conn, finished_index):
+        """Advance a playlist without falling back to the song that just ended."""
+        queue_size = len(self.music_queue)
+        if queue_size < 2:
+            raise RuntimeError("歌单中没有下一首歌曲")
+        failures = []
+        for offset in range(1, queue_size):
+            index = (int(finished_index) + offset) % queue_size
+            try:
+                title = await self._play_queue_item(conn, self.music_queue[index])
+                self.music_index = index
+                return title
+            except Exception as exc:
+                failures.append(str(exc))
+        reason = failures[0] if failures else "后续歌曲均不可播放"
+        raise RuntimeError(f"歌单后续歌曲均无法播放：{reason}")
+
     def _set_local_music_queue(self, selected):
         files = self._music_files()
         self.music_queue = [
@@ -958,6 +976,7 @@ class SimpleHttpServer:
         self._lyrics_future = asyncio.run_coroutine_threadsafe(runner(), conn.loop)
 
     async def _stop_audio(self, conn):
+        self.music_auto_advance = False
         self._cancel_lyrics()
         self._cancel_playback_finish()
         from core.handle.abortHandle import handleAbortMessage
@@ -997,6 +1016,7 @@ class SimpleHttpServer:
         )
 
         async def finish_after_playback():
+            current_task = asyncio.current_task()
             try:
                 await _wait_for_audio_completion(conn)
                 if (
@@ -1007,8 +1027,37 @@ class SimpleHttpServer:
                     await sendAudioMessage(
                         conn, SentenceType.LAST, [], None, sentence_id
                     )
+                    finished_index = self.music_index
+                    if self._playback_finish_task is current_task:
+                        self._playback_finish_task = None
+                    if self.music_auto_advance and len(self.music_queue) > 1:
+                        async with self._music_switch_lock:
+                            if (
+                                playback_generation != self._playback_generation
+                                or conn.client_abort
+                                or conn.sentence_id != sentence_id
+                                or not self.music_auto_advance
+                                or self.music_index != finished_index
+                            ):
+                                return
+                            self._cancel_lyrics()
+                            try:
+                                title = await self._play_next_playlist_item(
+                                    conn, finished_index
+                                )
+                                self.logger.bind(tag=TAG).info(
+                                    f"歌单自动续播：《{title}》"
+                                )
+                            except Exception as exc:
+                                self.music_auto_advance = False
+                                self.logger.bind(tag=TAG).warning(
+                                    f"歌单自动续播停止: {exc}"
+                                )
             except (asyncio.CancelledError, ConnectionError):
                 return
+            finally:
+                if self._playback_finish_task is current_task:
+                    self._playback_finish_task = None
 
         self._playback_finish_task = asyncio.create_task(finish_after_playback())
 
@@ -1405,6 +1454,7 @@ class SimpleHttpServer:
                         playlist = await self._select_ncm_playlist(arguments.get("playlist", ""))
                         tracks = await self._ncm_playlist_tracks(playlist["id"], 500)
                         self.music_queue = [{"kind": "online", "track": track} for track in tracks]
+                        self.music_auto_advance = True
                         title = await self._play_available_queue_item(conn, 0)
                     result = (
                         f"已自动加载歌单《{playlist['name']}》（{len(tracks)}首）"
@@ -1418,7 +1468,9 @@ class SimpleHttpServer:
                         if not self.music_queue:
                             raise RuntimeError("当前没有播放队列，请先选择一首歌")
                         next_index = (self.music_index + 1) % len(self.music_queue)
+                        auto_advance = self.music_auto_advance
                         await self._stop_audio(conn)
+                        self.music_auto_advance = auto_advance
                         title = await self._play_available_queue_item(conn, next_index)
                     result = f"已切换到下一首：《{title}》"
                 elif name == "self_alarm_create":
