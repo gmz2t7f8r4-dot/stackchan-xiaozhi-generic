@@ -1,0 +1,45 @@
+{
+    "target": "esp32s3",
+    "builds": [
+        {
+            "name": "m5stack-core-s3",
+            "sdkconfig_append": [
+                "CONFIG_SPIRAM_MODE_QUAD=y",
+                "CONFIG_USE_MULTILINE_CHAT_MESSAGE=y",
+                "CONFIG_CAMERA_GC0308=y",
+                "CONFIG_CAMERA_GC0308_AUTO_DETECT_DVP_INTERFACE_SENSOR=y",
+                "CONFIG_CAMERA_GC0308_DVP_YUV422_320X240_20FPS=y",
+                "CONFIG_BT_ENABLED=y",
+                "CONFIG_BT_NIMBLE_ENABLED=y",
+                "CONFIG_BT_NIMBLE_MEM_ALLOC_MODE_EXTERNAL=y",
+                "CONFIG_BT_NIMBLE_MAX_CONNECTIONS=1",
+                "CONFIG_BT_NIMBLE_ROLE_CENTRAL=n",
+                "CONFIG_BT_NIMBLE_ROLE_OBSERVER=n",
+                "CONFIG_BT_NIMBLE_GATT_CLIENT=n",
+                "CONFIG_BT_NIMBLE_SECURITY_ENABLE=n",
+                "CONFIG_BT_NIMBLE_50_FEATURE_SUPPORT=n",
+                "CONFIG_BT_NIMBLE_PROX_SERVICE=n",
+                "CONFIG_BT_NIMBLE_ANS_SERVICE=n",
+                "CONFIG_BT_NIMBLE_CTS_SERVICE=n",
+                "CONFIG_BT_NIMBLE_HTP_SERVICE=n",
+                "CONFIG_BT_NIMBLE_IPSS_SERVICE=n",
+                "CONFIG_BT_NIMBLE_TPS_SERVICE=n",
+                "CONFIG_BT_NIMBLE_IAS_SERVICE=n",
+                "CONFIG_BT_NIMBLE_LLS_SERVICE=n",
+                "CONFIG_BT_NIMBLE_SPS_SERVICE=n",
+                "CONFIG_BT_NIMBLE_HR_SERVICE=n",
+                "CONFIG_BT_NIMBLE_BAS_SERVICE=n",
+                "CONFIG_BT_NIMBLE_DIS_SERVICE=n",
+                "CONFIG_BT_NIMBLE_LOG_LEVEL_NONE=y",
+                "CONFIG_BT_CTRL_BLE_MAX_ACT=2",
+                "CONFIG_BT_CTRL_BLE_SCAN=n",
+                "CONFIG_BT_CTRL_BLE_SECURITY_ENABLE=n",
+                "CONFIG_BT_CTRL_DTM_ENABLE=n",
+                "CONFIG_BT_CTRL_CHAN_ASS_EN=n",
+                "CONFIG_BT_CTRL_LE_PING_EN=n",
+                "CONFIG_BT_CTRL_BLE_MIN_CONN_INTERVAL_ENABLE=n",
+                "CONFIG_BT_CTRL_RUN_IN_FLASH_ONLY=y"
+            ]
+        }
+    ]
+}
