@@ -436,7 +436,7 @@ void Application::CheckAssetsVersion() {
     }
 
     // Apply assets
-    assets.Apply();
+    assets.Apply(false);
     display->SetChatMessage("system", "");
     display->SetEmotion("microchip_ai");
 }
