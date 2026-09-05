@@ -1,21 +1,21 @@
 name: Build StackChan Firmware
 
 on:
- push:
- workflow_dispatch:
+  push:
+  workflow_dispatch:
 
 jobs:
- build:
- runs-on: ubuntu-latest
- steps:
- - uses: actions/checkout@v4
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
 
- - uses: espressif/esp-idf-ci-action@v1
- with:
- esp_idf_version: release/v5.5
- target: esp32s3
+      - uses: espressif/esp-idf-ci-action@v1
+        with:
+          esp_idf_version: release/v5.5
+          target: esp32s3
 
- - uses: actions/upload-artifact@v4
- with:
- name: stackchan-firmware
- path: build/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: stackchan-firmware
+          path: build/
